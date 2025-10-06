@@ -1,3 +1,4 @@
+import Data.List (transpose)
 -- Data definitions
 
 data Cella
@@ -26,10 +27,46 @@ charToCella _   = error "Carattere non valido"
 
 play :: Int -> Int -> Board -> Board
 play x y board =
-  take y board
-    ++ [placeLampadina x (board !! y)]
-    ++ drop (y + 1) board
+  let board'  = replaceAt y (illuminateRow x (board !! y)) board
+      board'' = illuminateColumn x y board'
+  in board''
 
 placeLampadina :: Int -> [Cella] -> [Cella]
 placeLampadina i row =
   take i row ++ [Lampadina] ++ drop (i + 1) row
+
+scanWhileLightable :: (Cella -> Cella) -> [Cella] -> [Cella]
+scanWhileLightable f = go True
+  where
+    go _ [] = []
+    go False xs = xs  -- fermati
+    go True (c:cs)
+      | isLightable c = f c : go True cs
+      | otherwise     = c : go False cs
+
+illuminateRow :: Int -> [Cella] -> [Cella]
+illuminateRow x row =
+  let (left, _:right) = splitAt x row
+      left'  = reverse $ scanWhileLightable illumina $ reverse left
+      right' = scanWhileLightable illumina right
+  in left' ++ [Lampadina] ++ right'
+
+isLightable :: Cella -> Bool
+isLightable Vuota = True
+isLightable (Illuminata _) = True
+isLightable _ = False
+
+illumina :: Cella -> Cella
+illumina Vuota = Illuminata 1
+illumina (Illuminata n) = Illuminata (n + 1)
+illumina c = c
+
+illuminateColumn :: Int -> Int -> Board -> Board
+illuminateColumn x y board =
+  transpose $ replaceAt x newCol (transpose board)
+  where
+    col = (transpose board) !! x
+    newCol = illuminateRow y col
+
+replaceAt :: Int -> a -> [a] -> [a]
+replaceAt i newVal xs = take i xs ++ [newVal] ++ drop (i + 1) xs
