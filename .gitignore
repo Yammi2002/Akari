@@ -1,0 +1,7 @@
+# File compilati da GHC
+*.o
+*.hi
+
+# File WebAssembly
+*.wasm
+
