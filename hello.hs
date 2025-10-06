@@ -70,3 +70,39 @@ illuminateColumn x y board =
 
 replaceAt :: Int -> a -> [a] -> [a]
 replaceAt i newVal xs = take i xs ++ [newVal] ++ drop (i + 1) xs
+
+--codice aggiunto da Luca
+--questa funzione restituisce il risultato se vinto o ancora incompleto
+isComplete :: Board -> Bool
+isComplete board =
+    allCellsIlluminated board && allWallsSatisfied board
+--controlla se nella mappa è presente una cella vuota
+allCellsIlluminated :: Board -> Bool
+allCellsIlluminated = all (all isIlluminatedOrBlocked)
+  where
+    isIlluminatedOrBlocked (Illuminata _) = True
+    isIlluminatedOrBlocked Lampadina      = True
+    isIlluminatedOrBlocked (Nera _)       = True
+    isIlluminatedOrBlocked _              = False
+--conta le luci attaccate al muro
+countAdjacentLamps :: Board -> Int -> Int -> Int
+countAdjacentLamps board y x =
+    length [ ()
+           | (dy, dx) <- [(-1,0),(1,0),(0,-1),(0,1)]
+           , let ny = y + dy
+           , let nx = x + dx
+           , inBounds ny nx
+           , (board !! ny) !! nx == Lampadina
+           ]
+  where
+    inBounds i j = i >= 0 && j >= 0 && i < length board && j < length (head board)
+--controlla che tutti i muri siano con il numero corretto di luci
+allWallsSatisfied :: Board -> Bool
+allWallsSatisfied board =
+    all checkCell [(y,x) | y <- [0..rows-1], x <- [0..cols-1]]
+  where
+    rows = length board
+    cols = length (head board)
+    checkCell (y,x) = case (board !! y) !! x of
+        Nera (Just n) -> countAdjacentLamps board y x == n
+        _             -> True
