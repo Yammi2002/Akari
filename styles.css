@@ -1,0 +1,15 @@
+.vuota {
+    background-color: aliceblue;
+    height: 50px;
+    width: 50px;
+}
+
+.lampadina {
+    background-color: orange;
+}
+
+.nera .numerata {
+    background-color: black;
+    color: aliceblue;
+    text-align: center;
+}

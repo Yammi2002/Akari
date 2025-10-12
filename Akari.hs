@@ -1,4 +1,29 @@
+
+module Akari where
+
+import Foreign.C.String (CString, peekCString, newCString)
 import Data.List (transpose)
+
+-- Esporta una funzione "impura" compatibile col WASM/JS
+foreign export ccall play_wasm :: CString -> Int -> Int -> IO CString
+foreign export ccall isComplete_wasm :: CString -> IO Int
+
+-- Wrapper functions
+play_wasm :: CString -> Int -> Int -> IO CString
+play_wasm cstr x y = do
+  input <- peekCString cstr
+  let board = parseBoard input
+  let newBoard = play x y board
+  let outStr = boardToString newBoard
+  newCString outStr
+
+isComplete_wasm :: CString -> IO Int
+isComplete_wasm cstr = do
+  input <- peekCString cstr
+  let board = parseBoard input
+  let res = if isComplete board then 1 else 0
+  return res
+
 -- Data definitions
 
 data Cella
@@ -22,6 +47,22 @@ charToCella '2' = Nera (Just 2)
 charToCella '3' = Nera (Just 3)
 charToCella '4' = Nera (Just 4)
 charToCella _   = error "Carattere non valido"
+
+-- | Serve per la serializzazione
+cellaToChar :: Cella -> Char
+cellaToChar Vuota          = '.'
+cellaToChar Lampadina      = '*'
+cellaToChar (Illuminata _) = '+'  -- puoi usare anche '.' o altro
+cellaToChar (Nera Nothing) = '#'
+cellaToChar (Nera (Just n)) = head (show n)
+
+-- | Converte una stringa in una Board
+parseBoard :: String -> Board
+parseBoard = map (map charToCella) . lines
+
+-- | Converte una Board in stringa
+boardToString :: Board -> String
+boardToString = unlines . map (map cellaToChar)
 
 -- Funzione per piazzare una lampadina
 
