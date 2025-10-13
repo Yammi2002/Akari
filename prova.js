@@ -28,28 +28,10 @@ if (typeof inst.exports.hs_init === "function") {
   console.warn("hs_init non trovato.");
 }
 
+let currentBoard = "";
 const boardString = await fetch("/boards/board7x7.1").then((res) => res.text());
-drawBoard(boardString);
-
-const encoder = new TextEncoder();
-const inputBytes = encoder.encode(boardString + "\0"); // C stringa terminata da null
-
-// Per ora assumiamo che il buffer wasm sia abbastanza grande e usiamo offset 0 (da migliorare)
-const mem = new Uint8Array(inst.exports.memory.buffer);
-const ptrIn = 0;
-mem.set(inputBytes, ptrIn);
-
-// --- CHIAMA play_wasm ---
-const ptrOut = inst.exports.play_wasm(ptrIn, 2, 3); // ad esempio, mossa in (x=2, y=3)
-
-// --- LEGGI STRINGA RISULTANTE ---
-let result = "";
-const memOut = new Uint8Array(inst.exports.memory.buffer);
-for (let i = ptrOut; memOut[i] !== 0; i++) {
-  result += String.fromCharCode(memOut[i]);
-}
-
-console.log(result);
+currentBoard = boardString;
+drawBoard(currentBoard);
 
 async function drawBoard(boardString) {
   const table = document.getElementById("akari-board");
@@ -57,28 +39,44 @@ async function drawBoard(boardString) {
   // Dividi la board in righe (split su newline)
   const rows = boardString.trim().split("\n");
 
-  for (const row of rows) {
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+    const row = rows[rowIndex];
     const tableRow = document.createElement("tr");
 
-    for (const cell of row) {
+    for (let colIndex = 0; colIndex < row.length; colIndex++) {
+      const cell = row[colIndex];
       const tableCell = document.createElement("td");
 
       switch (cell) {
         case ".":
           tableCell.classList.add("vuota");
+          tableCell.addEventListener("click", () => play(colIndex, rowIndex));
           break;
         case "*":
           tableCell.classList.add("lampadina");
+          tableCell.addEventListener("click", () => play(colIndex, rowIndex));
+
           break;
         case "#":
           tableCell.classList.add("nera");
+          break;
+        case "+":
+        case "a":
+        case "b":
+        case "c":
+        case "5":
+        case "6":
+        case "7":
+        case "8":
+        case "9":
+          tableCell.classList.add("illuminata");
           break;
         case "0":
         case "1":
         case "2":
         case "3":
         case "4":
-          tableCell.classList.add("nera-numerata");
+          tableCell.classList.add("numerata");
           tableCell.textContent = cell;
           break;
       }
@@ -88,4 +86,29 @@ async function drawBoard(boardString) {
 
     table.appendChild(tableRow);
   }
+}
+
+function play(x, y) {
+  const encoder = new TextEncoder();
+  const inputBytes = encoder.encode(currentBoard + "\0");
+
+  const mem = new Uint8Array(inst.exports.memory.buffer);
+  const ptrIn = 0;
+  mem.fill(0, ptrIn, ptrIn + inputBytes.length + 1);
+  mem.set(inputBytes, ptrIn);
+  console.log("Board passata a play_wasm:\n", currentBoard);
+
+  const ptrOut = inst.exports.play_wasm(ptrIn, x, y);
+
+  let result = "";
+  const memOut = new Uint8Array(inst.exports.memory.buffer);
+  for (let i = ptrOut; memOut[i] !== 0; i++) {
+    result += String.fromCharCode(memOut[i]);
+  }
+  console.log("Board restituita da play_wasm:\n", result);
+
+  currentBoard = result; // aggiorna lo stato della board
+  const table = document.getElementById("akari-board");
+  table.innerHTML = "";
+  drawBoard(result);
 }

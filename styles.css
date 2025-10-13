@@ -8,8 +8,20 @@
     background-color: orange;
 }
 
-.nera .numerata {
+.nera {
     background-color: black;
     color: aliceblue;
     text-align: center;
+}
+
+.numerata {
+    background-color: black;
+    color: white;
+    text-align: center;
+}
+
+.illuminata {
+    background-color: yellow;
+    height: 50px;
+    width: 50px;
 }

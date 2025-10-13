@@ -1,20 +1,19 @@
-
 module Akari where
 
 import Foreign.C.String (CString, peekCString, newCString)
 import Data.List (transpose)
 
--- Esporta una funzione "impura" compatibile col WASM/JS
+-- Esporta funzioni WASM
 foreign export ccall play_wasm :: CString -> Int -> Int -> IO CString
 foreign export ccall isComplete_wasm :: CString -> IO Int
 
--- Wrapper functions
 play_wasm :: CString -> Int -> Int -> IO CString
 play_wasm cstr x y = do
   input <- peekCString cstr
   let board = parseBoard input
-  let newBoard = play x y board
-  let outStr = boardToString newBoard
+  let newBoard = toggleLampadina x y board
+  let illuminatedBoard = illuminateBoard newBoard
+  let outStr = boardToString illuminatedBoard
   newCString outStr
 
 isComplete_wasm :: CString -> IO Int
@@ -35,89 +34,125 @@ data Cella
 
 type Board = [[Cella]]
 
--- Char parser
+-- Parser / Serializzazione
 
 charToCella :: Char -> Cella
 charToCella '.' = Vuota
 charToCella '*' = Lampadina
+charToCella '+' = Illuminata 1
+charToCella 'a' = Illuminata 2
+charToCella 'b' = Illuminata 3
+charToCella 'c' = Illuminata 4
+charToCella '5' = Illuminata 5
+charToCella '6' = Illuminata 6
+charToCella '7' = Illuminata 7
+charToCella '8' = Illuminata 8
+charToCella '9' = Illuminata 9
 charToCella '#' = Nera Nothing
 charToCella '0' = Nera (Just 0)
 charToCella '1' = Nera (Just 1)
 charToCella '2' = Nera (Just 2)
 charToCella '3' = Nera (Just 3)
 charToCella '4' = Nera (Just 4)
-charToCella _   = error "Carattere non valido"
+charToCella c   = error $ "Carattere non valido: " ++ [c]
 
--- | Serve per la serializzazione
 cellaToChar :: Cella -> Char
 cellaToChar Vuota          = '.'
 cellaToChar Lampadina      = '*'
-cellaToChar (Illuminata _) = '+'  -- puoi usare anche '.' o altro
+cellaToChar (Illuminata 1) = '+'
+cellaToChar (Illuminata 2) = 'a'
+cellaToChar (Illuminata 3) = 'b'
+cellaToChar (Illuminata 4) = 'c'
+cellaToChar (Illuminata n)
+  | n >= 5 && n <= 9       = head (show n)
+  | otherwise              = 'x'  -- valore imprevisto
 cellaToChar (Nera Nothing) = '#'
 cellaToChar (Nera (Just n)) = head (show n)
 
--- | Converte una stringa in una Board
 parseBoard :: String -> Board
 parseBoard = map (map charToCella) . lines
 
--- | Converte una Board in stringa
 boardToString :: Board -> String
 boardToString = unlines . map (map cellaToChar)
 
--- Funzione per piazzare una lampadina
+-- Gestione gioco
 
-play :: Int -> Int -> Board -> Board
-play x y board =
-  let board'  = replaceAt y (illuminateRow x (board !! y)) board
-      board'' = illuminateColumn x y board'
-  in board''
+-- Toggle lampadina: se c'è, rimuovi; altrimenti piazza
+toggleLampadina :: Int -> Int -> Board -> Board
+toggleLampadina x y board =
+  case (board !! y) !! x of
+    Lampadina -> removeLampadina x y board
+    Vuota     -> placeLampadina x y board
+    Illuminata _ -> placeLampadina x y board -- permette piazzare se illuminata ma vuota
+    _         -> board -- nessuna azione su muri neri
 
-placeLampadina :: Int -> [Cella] -> [Cella]
-placeLampadina i row =
-  take i row ++ [Lampadina] ++ drop (i + 1) row
-
-scanWhileLightable :: (Cella -> Cella) -> [Cella] -> [Cella]
-scanWhileLightable f = go True
+-- Piazza lampadina (inserisce Lampadina in posizione)
+placeLampadina :: Int -> Int -> Board -> Board
+placeLampadina x y board = replaceAt y newRow board
   where
-    go _ [] = []
-    go False xs = xs  -- fermati
-    go True (c:cs)
-      | isLightable c = f c : go True cs
-      | otherwise     = c : go False cs
+    row = board !! y
+    newRow = replaceAt x Lampadina row
 
-illuminateRow :: Int -> [Cella] -> [Cella]
-illuminateRow x row =
-  let (left, _:right) = splitAt x row
-      left'  = reverse $ scanWhileLightable illumina $ reverse left
-      right' = scanWhileLightable illumina right
-  in left' ++ [Lampadina] ++ right'
-
-isLightable :: Cella -> Bool
-isLightable Vuota = True
-isLightable (Illuminata _) = True
-isLightable _ = False
-
-illumina :: Cella -> Cella
-illumina Vuota = Illuminata 1
-illumina (Illuminata n) = Illuminata (n + 1)
-illumina c = c
-
-illuminateColumn :: Int -> Int -> Board -> Board
-illuminateColumn x y board =
-  transpose $ replaceAt x newCol (transpose board)
+-- Rimuove lampadina sostituendo con Vuota
+removeLampadina :: Int -> Int -> Board -> Board
+removeLampadina x y board = replaceAt y newRow board
   where
-    col = (transpose board) !! x
-    newCol = illuminateRow y col
+    row = board !! y
+    newRow = replaceAt x Vuota row
+
+-- Illumina tutta la board da zero, contando tutte le lampadine
+illuminateBoard :: Board -> Board
+illuminateBoard board =
+  let boardNoLight = clearIllumination board
+      lampPositions = [ (x,y) | y <- [0..length board -1], x <- [0..length (head board) -1], (boardNoLight !! y) !! x == Lampadina ]
+  in foldl illuminateFromLamp boardNoLight lampPositions
+
+-- Rimuove tutte le celle Illuminata tornando Vuota
+clearIllumination :: Board -> Board
+clearIllumination = map (map clearCell)
+  where
+    clearCell (Illuminata _) = Vuota
+    clearCell c = c
+
+-- Illumina la board partendo da una singola lampadina
+illuminateFromLamp :: Board -> (Int, Int) -> Board
+illuminateFromLamp board (x,y) =
+  let board' = illuminateLine x y board (1, 0)   -- destra
+      board'' = illuminateLine x y board' (-1,0) -- sinistra
+      board''' = illuminateLine x y board'' (0, 1) -- giù
+      board'''' = illuminateLine x y board''' (0, -1) -- su
+  in board''''
+
+-- Illumina una linea fino al muro, incrementando il contatore Illuminata
+illuminateLine :: Int -> Int -> Board -> (Int, Int) -> Board
+illuminateLine x y board (dx, dy) = go (x+dx) (y+dy) board
+  where
+    go cx cy b
+      | not (inBounds cx cy b) = b
+      | otherwise =
+          case (b !! cy) !! cx of
+            Vuota -> go (cx+dx) (cy+dy) (replaceCell cx cy (Illuminata 1) b)
+            Illuminata n -> go (cx+dx) (cy+dy) (replaceCell cx cy (Illuminata (n+1)) b)
+            _ -> b -- muro o lampadina, fermati
+    inBounds ix iy brd = iy >= 0 && iy < length brd && ix >= 0 && ix < length (head brd)
+
+-- Utility: sostituisce cella in board
+replaceCell :: Int -> Int -> Cella -> Board -> Board
+replaceCell x y newCell board =
+  replaceAt y newRow board
+  where
+    row = board !! y
+    newRow = replaceAt x newCell row
 
 replaceAt :: Int -> a -> [a] -> [a]
-replaceAt i newVal xs = take i xs ++ [newVal] ++ drop (i + 1) xs
+replaceAt i val xs = take i xs ++ [val] ++ drop (i+1) xs
 
---codice aggiunto da Luca
---questa funzione restituisce il risultato se vinto o ancora incompleto
+-- Controllo fine gioco
+
 isComplete :: Board -> Bool
 isComplete board =
-    allCellsIlluminated board && allWallsSatisfied board
---controlla se nella mappa è presente una cella vuota
+  allCellsIlluminated board && allWallsSatisfied board
+
 allCellsIlluminated :: Board -> Bool
 allCellsIlluminated = all (all isIlluminatedOrBlocked)
   where
@@ -125,25 +160,25 @@ allCellsIlluminated = all (all isIlluminatedOrBlocked)
     isIlluminatedOrBlocked Lampadina      = True
     isIlluminatedOrBlocked (Nera _)       = True
     isIlluminatedOrBlocked _              = False
---conta le luci attaccate al muro
+
 countAdjacentLamps :: Board -> Int -> Int -> Int
 countAdjacentLamps board y x =
-    length [ ()
-           | (dy, dx) <- [(-1,0),(1,0),(0,-1),(0,1)]
-           , let ny = y + dy
-           , let nx = x + dx
-           , inBounds ny nx
-           , (board !! ny) !! nx == Lampadina
-           ]
+  length [ ()
+         | (dy, dx) <- [(-1,0),(1,0),(0,-1),(0,1)]
+         , let ny = y + dy
+         , let nx = x + dx
+         , inBounds ny nx
+         , (board !! ny) !! nx == Lampadina
+         ]
   where
     inBounds i j = i >= 0 && j >= 0 && i < length board && j < length (head board)
---controlla che tutti i muri siano con il numero corretto di luci
+
 allWallsSatisfied :: Board -> Bool
 allWallsSatisfied board =
-    all checkCell [(y,x) | y <- [0..rows-1], x <- [0..cols-1]]
+  all checkCell [(y,x) | y <- [0..rows-1], x <- [0..cols-1]]
   where
     rows = length board
     cols = length (head board)
     checkCell (y,x) = case (board !! y) !! x of
-        Nera (Just n) -> countAdjacentLamps board y x == n
-        _             -> True
+      Nera (Just n) -> countAdjacentLamps board y x == n
+      _             -> True
