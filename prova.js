@@ -28,15 +28,55 @@ if (typeof inst.exports.hs_init === "function") {
   console.warn("hs_init non trovato.");
 }
 
+const Levels = [
+  { name: "Livello 1", path: "/boards/board7x7.1" },
+  { name: "Livello 2", path: "/boards/board7x7.2" },
+  { name: "Livello 3", path: "/boards/board10x10.1" },
+];
+
+let timerInterval;
+let secondsElapsed = 0;
+
+let currentLevelIndex = 0;
 let currentBoard = "";
-const boardString = await fetch("/boards/board7x7.1").then((res) => res.text());
-currentBoard = boardString;
-drawBoard(currentBoard);
+const table = document.getElementById("akari-board");
+
+setListeners();
+
+function setListeners(){
+document.getElementById("reload-button").addEventListener("click", async function () {
+  table.innerHTML = "";
+  await loadLevel(currentLevelIndex);
+  document.getElementById("overlay").classList.add("invisible");  
+  startTimer();
+});
+
+document.getElementById("start-button").addEventListener("click", function () {
+  document.getElementById("levels").classList.remove("invisible");
+  this.classList.add("invisible");
+});
+
+
+  Levels.forEach((level, index) => {
+    document.getElementById(`level-${index}`).addEventListener("click", async function () {
+      document.getElementById("levels").classList.add("invisible");
+      currentLevelIndex = index;
+      await loadLevel(index);
+      document.getElementById("timer").classList.remove("invisible");
+    });
+  });
+
+    document.getElementById("next-level-button").addEventListener("click", async function () {
+  document.getElementById("overlay").classList.add("invisible");    
+    currentLevelIndex++;
+    table.innerHTML = "";
+    await loadLevel(currentLevelIndex);
+    startTimer();
+  });
+}
 
 async function drawBoard(boardString) {
-  const table = document.getElementById("akari-board");
 
-  // Dividi la board in righe (split su newline)
   const rows = boardString.trim().split("\n");
 
   for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
@@ -88,27 +128,75 @@ async function drawBoard(boardString) {
   }
 }
 
+
 function play(x, y) {
   const encoder = new TextEncoder();
   const inputBytes = encoder.encode(currentBoard + "\0");
 
-  const mem = new Uint8Array(inst.exports.memory.buffer);
+  let mem = new Uint8Array(inst.exports.memory.buffer);
   const ptrIn = 0;
   mem.fill(0, ptrIn, ptrIn + inputBytes.length + 1);
   mem.set(inputBytes, ptrIn);
-  console.log("Board passata a play_wasm:\n", currentBoard);
 
   const ptrOut = inst.exports.play_wasm(ptrIn, x, y);
 
+  mem = new Uint8Array(inst.exports.memory.buffer);
   let result = "";
-  const memOut = new Uint8Array(inst.exports.memory.buffer);
-  for (let i = ptrOut; memOut[i] !== 0; i++) {
-    result += String.fromCharCode(memOut[i]);
+  for (let i = ptrOut; mem[i] !== 0; i++) {
+    result += String.fromCharCode(mem[i]);
   }
-  console.log("Board restituita da play_wasm:\n", result);
 
-  currentBoard = result; // aggiorna lo stato della board
-  const table = document.getElementById("akari-board");
+  currentBoard = result;
   table.innerHTML = "";
   drawBoard(result);
+
+  const boardBytes = encoder.encode(currentBoard + "\0");
+  const ptrCheck = 1024;
+  mem = new Uint8Array(inst.exports.memory.buffer);
+  mem.fill(0, ptrCheck, ptrCheck + boardBytes.length + 1);
+  mem.set(boardBytes, ptrCheck);
+
+  const isComplete = inst.exports.isComplete_wasm(ptrCheck);
+  if(isComplete) {
+  document.getElementById("overlay").classList.remove("invisible");    
+  stopTimer();
+  }
+}
+
+async function loadLevel(index) {
+  if (index >= Levels.length) {
+    alert("Hai completato tutti i livelli!");
+    return;
+  }
+
+  const boardString = await fetch(Levels[index].path).then(res => res.text());
+  currentBoard = boardString;
+  drawBoard(boardString);
+}
+
+function startTimer() {
+  clearInterval(timerInterval); // Reset
+  secondsElapsed = 0;
+  updateTimerDisplay();
+
+  timerInterval = setInterval(() => {
+    secondsElapsed++;
+    updateTimerDisplay();
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+}
+
+function resetTimer() {
+  clearInterval(timerInterval);
+  secondsElapsed = 0;
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const minutes = String(Math.floor(secondsElapsed / 60)).padStart(2, "0");
+  const seconds = String(secondsElapsed % 60).padStart(2, "0");
+  document.getElementById("timer").textContent = `${minutes}:${seconds}`;
 }

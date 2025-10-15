@@ -5,7 +5,30 @@
   <title>Akari Wasm + Haskell</title>
   <link rel="stylesheet" href="styles.css"></head>
 <body>
-  <table id="akari-board"></table>
+  <div id="main-content">
+    <div id="timer" class="timer invisible">00:00</div>
+    <table id="akari-board"></table>
+    <div id="start-panel">
+      <button id="start-button">Start</button>
+    </div>
+    <div id="levels" class="invisible">
+      <img src="images/level1.png" id="level-0"/>
+      <img src="images/level2.png" id="level-1"/>
+      <img src="images/level3.png" id="level-2"/>
+    </div>
+  </div>
+
+  <!-- Overlay sfocato + modale -->
+  <div id="overlay" class="invisible">
+    <div class="blur-background"></div>
+    <div class="modal-box">
+      <p>Bravo! hai terminato il livello!<br>Scegli la prossima azione per continuare:</p>
+      <button id="reload-button">Riavvia</button>
+      <button id="next-level-button">Livello successivo</button>
+    </div>
+  </div>
+
   <script type="module" src="prova.js"></script>
 </body>
+
 </html>
