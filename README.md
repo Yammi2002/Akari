@@ -26,7 +26,7 @@ Finally, to run the game locally in your browser, start a simple HTTP server suc
 ```bash
 python3 -m http.server 8080
 ```
-Then open your browser and navigate to http://localhost:8080 to play.
+Then open your browser and navigate to http://127.0.0.1:8080/ to play.
 
 ## Credits
 
