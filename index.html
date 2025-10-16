@@ -3,32 +3,65 @@
 <head>
   <meta charset="utf-8">
   <title>Akari Wasm + Haskell</title>
-  <link rel="stylesheet" href="styles.css"></head>
+  <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <link rel="icon" href="images/favicon.png" type="image/x-icon" />
+</head>
 <body>
   <div id="main-content">
     <div id="timer" class="timer invisible">00:00</div>
+    <div id="best-time" class="invisible"></div>
     <table id="akari-board"></table>
+    <div id =rules class="invisible">
+      <h2>How to Play Akari (Light Up)</h2>
+<ul>
+  <li>Click on a white cell to place or remove a light bulb.</li>
+  <li>Each light bulb lights up its entire row and column until it hits a black cell or the edge of the grid.</li>
+  <li>No two light bulbs may shine on each other (i.e., no two bulbs can be in the same lit row or column).</li>
+  <li>All white cells must be lit.</li>
+  <li>Some black cells contain a number (0–4): this indicates how many light bulbs must be placed in the four adjacent cells (up, down, left, right).</li>
+  <li>Black cells without numbers do not have any restrictions, but they still block light.</li>
+</ul>
+
+    </div>
     <div id="start-panel">
+      <p class="welcome-message">
+    Welcome to <strong>Akari</strong>!<br>
+    This puzzle game is developed in <strong>Haskell</strong> and compiled to <strong>WebAssembly</strong> to run seamlessly in your browser.<br>
+    Click <em>Start</em> to begin your challenge and light up the board!
+  </p>
       <button id="start-button">Start</button>
     </div>
-    <div id="levels" class="invisible">
-      <img src="images/level1.png" id="level-0"/>
-      <img src="images/level2.png" id="level-1"/>
-      <img src="images/level3.png" id="level-2"/>
-    </div>
+<div id="levels" class="invisible">
+  <div class="level-item">
+    <img src="images/level1.png" id="level-0" />
+    <p>Level 1</p>
+  </div>
+  <div class="level-item">
+    <img src="images/level2.png" id="level-1" />
+    <p>Level 2</p>
+  </div>
+  <div class="level-item">
+    <img src="images/level3.png" id="level-2" />
+    <p>Level 3</p>
+  </div>
+</div>
+
   </div>
 
-  <!-- Overlay sfocato + modale -->
   <div id="overlay" class="invisible">
     <div class="blur-background"></div>
     <div class="modal-box">
-      <p>Bravo! hai terminato il livello!<br>Scegli la prossima azione per continuare:</p>
-      <button id="reload-button">Riavvia</button>
-      <button id="next-level-button">Livello successivo</button>
+      <p>Great! You completed the level!<br>Choose the next action to continue:</p>
+      <button id="reload-button">Try again</button>
+      <button id="next-level-button">Next level</button>
     </div>
   </div>
+<div id="credits">
+  Gianmarco Bigliardi, Luca Foramacchi — University of Parma
+</div>
 
-  <script type="module" src="prova.js"></script>
+  <script type="module" src="script.js"></script>
 </body>
 
 </html>

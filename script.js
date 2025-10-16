@@ -63,6 +63,10 @@ document.getElementById("start-button").addEventListener("click", function () {
       currentLevelIndex = index;
       await loadLevel(index);
       document.getElementById("timer").classList.remove("invisible");
+      document.getElementById("best-time").classList.remove("invisible");
+      document.getElementById("rules").classList.remove("invisible");
+      document.getElementById("start-panel").classList.add("invisible");
+      startTimer();
     });
   });
 
@@ -150,6 +154,8 @@ function play(x, y) {
   table.innerHTML = "";
   drawBoard(result);
 
+  animateCell(x, y);
+
   const boardBytes = encoder.encode(currentBoard + "\0");
   const ptrCheck = 1024;
   mem = new Uint8Array(inst.exports.memory.buffer);
@@ -160,6 +166,7 @@ function play(x, y) {
   if(isComplete) {
   document.getElementById("overlay").classList.remove("invisible");    
   stopTimer();
+    saveBestTime(currentLevelIndex, secondsElapsed);
   }
 }
 
@@ -172,6 +179,15 @@ async function loadLevel(index) {
   const boardString = await fetch(Levels[index].path).then(res => res.text());
   currentBoard = boardString;
   drawBoard(boardString);
+  const best = getBestTime(index);
+  const bestTimeDiv = document.getElementById("best-time");
+  if (best !== null) {
+    const min = Math.floor(best / 60);
+    const sec = best % 60;
+    bestTimeDiv.textContent = `Current best time: ${min.toString().padStart(2,"0")}:${sec.toString().padStart(2,"0")}`;
+  } else {
+    bestTimeDiv.textContent = "Current best time: Complete this level to set a mew best time!";
+  }
 }
 
 function startTimer() {
@@ -199,4 +215,35 @@ function updateTimerDisplay() {
   const minutes = String(Math.floor(secondsElapsed / 60)).padStart(2, "0");
   const seconds = String(secondsElapsed % 60).padStart(2, "0");
   document.getElementById("timer").textContent = `${minutes}:${seconds}`;
+}
+
+function pulseCell(cell) {
+  cell.classList.add("pulse-once");
+  setTimeout(() => {
+    cell.classList.remove("pulse-once");
+  }, 200); 
+}
+
+function animateCell(x, y) {
+  const row = table.rows[y];
+  if (!row) return;
+  const cell = row.cells[x];
+  if (!cell) return;
+
+  pulseCell(cell);
+}
+
+function saveBestTime(levelIndex, timeInSeconds) {
+  const key = `bestTime-level-${levelIndex}`;
+  const bestTime = sessionStorage.getItem(key);
+
+  if (!bestTime || timeInSeconds < parseInt(bestTime, 10)) {
+    sessionStorage.setItem(key, timeInSeconds);
+  }
+}
+
+function getBestTime(levelIndex) {
+  const key = `bestTime-level-${levelIndex}`;
+  const bestTime = sessionStorage.getItem(key);
+  return bestTime ? parseInt(bestTime, 10) : null;
 }
