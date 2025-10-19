@@ -1,7 +1,6 @@
 module Akari where
 
 import Foreign.C.String (CString, peekCString, newCString)
-import Data.List (transpose)
 
 -- Esporta funzioni WASM
 foreign export ccall play_wasm :: CString -> Int -> Int -> IO CString
