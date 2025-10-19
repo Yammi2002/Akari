@@ -77,7 +77,6 @@ boardToString = unlines . map (map cellaToChar)
 
 -- Gestione gioco
 
--- Toggle lampadina: se c'è, rimuovi; altrimenti piazza
 toggleLampadina :: Int -> Int -> Board -> Board
 toggleLampadina x y board =
   case (board !! y) !! x of
@@ -86,35 +85,30 @@ toggleLampadina x y board =
     Illuminata _ -> placeLampadina x y board -- permette piazzare se illuminata ma vuota
     _         -> board -- nessuna azione su muri neri
 
--- Piazza lampadina (inserisce Lampadina in posizione)
 placeLampadina :: Int -> Int -> Board -> Board
 placeLampadina x y board = replaceAt y newRow board
   where
     row = board !! y
     newRow = replaceAt x Lampadina row
 
--- Rimuove lampadina sostituendo con Vuota
 removeLampadina :: Int -> Int -> Board -> Board
 removeLampadina x y board = replaceAt y newRow board
   where
     row = board !! y
     newRow = replaceAt x Vuota row
 
--- Illumina tutta la board da zero, contando tutte le lampadine
 illuminateBoard :: Board -> Board
 illuminateBoard board =
   let boardNoLight = clearIllumination board
       lampPositions = [ (x,y) | y <- [0..length board -1], x <- [0..length (head board) -1], (boardNoLight !! y) !! x == Lampadina ]
   in foldl illuminateFromLamp boardNoLight lampPositions
 
--- Rimuove tutte le celle Illuminata tornando Vuota
 clearIllumination :: Board -> Board
 clearIllumination = map (map clearCell)
   where
     clearCell (Illuminata _) = Vuota
     clearCell c = c
 
--- Illumina la board partendo da una singola lampadina
 illuminateFromLamp :: Board -> (Int, Int) -> Board
 illuminateFromLamp board (x,y) =
   let board' = illuminateLine x y board (1, 0)   -- destra
@@ -123,7 +117,6 @@ illuminateFromLamp board (x,y) =
       board'''' = illuminateLine x y board''' (0, -1) -- su
   in board''''
 
--- Illumina una linea fino al muro, incrementando il contatore Illuminata
 illuminateLine :: Int -> Int -> Board -> (Int, Int) -> Board
 illuminateLine x y board (dx, dy) = go (x+dx) (y+dy) board
   where
@@ -136,7 +129,6 @@ illuminateLine x y board (dx, dy) = go (x+dx) (y+dy) board
             _ -> b -- muro o lampadina, fermati
     inBounds ix iy brd = iy >= 0 && iy < length brd && ix >= 0 && ix < length (head brd)
 
--- Utility: sostituisce cella in board
 replaceCell :: Int -> Int -> Cella -> Board -> Board
 replaceCell x y newCell board =
   replaceAt y newRow board
@@ -146,8 +138,6 @@ replaceCell x y newCell board =
 
 replaceAt :: Int -> a -> [a] -> [a]
 replaceAt i val xs = take i xs ++ [val] ++ drop (i+1) xs
-
--- Controllo fine gioco
 
 isComplete :: Board -> Bool
 isComplete board =
