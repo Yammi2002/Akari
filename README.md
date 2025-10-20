@@ -28,6 +28,13 @@ python3 -m http.server 8080
 ```
 Then open your browser and navigate to http://127.0.0.1:8080/ to play.
 
+## Console Version
+
+The file Main.hs is used to play the game directly in the terminal.
+You can run it by typing:
+```powershell
+runhaskell .\main.hs
+```
 ## Credits
 
 Developed by Gianmarco Bigliardi and Luca Foramacchi — University of Parma
