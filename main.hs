@@ -9,7 +9,7 @@ applyMoves = foldl (\b (x, y) -> illuminateBoard (toggleLampadina x y b))
 main :: IO ()
 main = do
   putStrLn "=== AKARI Puzzle ==="
-  content <- readFile "board/board.7x7.1"
+  content <- readFile "boards/board7x7.1"
   let initialBoard = illuminateBoard (parseBoard content)
   putStrLn "\nBoard iniziale:"
   loop initialBoard []
