@@ -14,7 +14,7 @@ source ~/.ghc-wasm/env
 ```
 Then compile the Haskell source file Akari.hs to a WebAssembly module using the following command:
 ```bash
-wasm32-wasi-ghc Akari.hs -o akari.wasm -no-hs-main \
+wasm32-wasi-ghc exports.hs -o exports.wasm -no-hs-main \
   -optl-mexec-model=reactor \
   -optl-Wl,--export=hs_init \
   -optl-Wl,--export=play_wasm \
