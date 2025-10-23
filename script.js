@@ -12,7 +12,7 @@ let fds = [
 let wasi = new WASI(args, env, fds);
 
 // Carica il modulo .wasm
-let wasm = await WebAssembly.compileStreaming(fetch("akari.wasm"));
+let wasm = await WebAssembly.compileStreaming(fetch("exports.wasm"));
 let inst = await WebAssembly.instantiate(wasm, {
   wasi_snapshot_preview1: wasi.wasiImport,
 });
