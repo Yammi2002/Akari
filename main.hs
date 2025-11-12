@@ -19,7 +19,7 @@ main = do
   putStrLn "\nBoard iniziale:"
   putStrLn (boardToString initialBoard)
 
-  putStrLn "\nInserisci mosse (x y), una per riga. Digita Ctrl+D (Unix) o Ctrl+Z (Windows) per terminare.\n"
+  putStrLn "\nInserisci mosse digitando la posizione desiderata sulla griglia (x y), una per riga. Digita Ctrl+D (Unix) o Ctrl+Z (Windows) per terminare.\n"
 
   input <- getContents
 
@@ -34,4 +34,4 @@ main = do
            putStrLn (boardToString b)
         ) playing
 
-  putStrLn "\n*** Gioco terminato o completato! ***"
+  putStrLn "\n*** Gioco terminato! ***"
